@@ -21,7 +21,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const spotsLeft = details.max_participants - details.participants.length;
         const participantItems = details.participants.length
           ? details.participants
-              .map((participant) => `<li>${participant}</li>`)
+              .map(
+                (participant) => `
+                  <li>
+                    <span>${participant}</span>
+                    <button class="delete-participant" type="button" data-activity="${name}" data-email="${participant}" aria-label="Unregister ${participant} from ${name}">
+                      &#128465;
+                    </button>
+                  </li>`
+              )
               .join("")
           : "<li>No participants yet</li>";
 
@@ -37,6 +45,32 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         activitiesList.appendChild(activityCard);
+
+        activityCard.querySelectorAll(".delete-participant").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const activity = button.dataset.activity;
+            const email = button.dataset.email;
+
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(activity)}/participants/${encodeURIComponent(email)}`,
+                { method: "DELETE" }
+              );
+
+              const result = await response.json();
+              if (!response.ok) {
+                throw new Error(result.detail || "Unable to unregister participant");
+              }
+
+              await fetchActivities();
+            } catch (error) {
+              messageDiv.textContent = error.message;
+              messageDiv.className = "error";
+              messageDiv.classList.remove("hidden");
+              console.error("Error unregistering participant:", error);
+            }
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
